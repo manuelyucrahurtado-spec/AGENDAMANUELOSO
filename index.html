@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agenda Semanal</title>
+<style>
+:root{--ink:#111;--lime:#bfff7a;--card:rgba(255,255,255,.5);--tick:#7d8fc4;--acc:#9a8cf5;--sheet:#fff;--field:#eceff5;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+:root[data-theme="dark"]{--ink:#f2f2f8;--card:rgba(255,255,255,.14);--sheet:#2a2d45;--field:#3a3e5c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#f2f2f8;--card:rgba(255,255,255,.14);--sheet:#2a2d45;--field:#3a3e5c}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:linear-gradient(160deg,#fdeee8 0%,#e9c6dc 22%,#9aa3d3 45%,#c9d8ef 70%,#eaf1fb 100%) fixed}
+:root[data-theme="dark"] body{background:linear-gradient(160deg,#3a2c3c,#4a3a5c 30%,#2f3a66 60%,#26324f) fixed}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body{background:linear-gradient(160deg,#3a2c3c,#4a3a5c 30%,#2f3a66 60%,#26324f) fixed}}
+main{max-width:520px;margin:0 auto;padding:28px 22px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px}
+h1{font-weight:500;font-size:clamp(30px,8vw,40px);margin:0;letter-spacing:-.01em}
+.ib{background:none;border:0;padding:6px;border-radius:10px;display:grid;place-items:center}
+.ib:focus-visible,.chk:focus-visible,.row:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.ib svg{width:30px;height:30px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ib.on{background:var(--card)}
+.prog{margin:18px 0 6px;font-size:14px;opacity:.8}
+.bar{height:10px;background:rgba(0,0,0,.12);border-radius:10px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);border-radius:10px;transition:width .3s}
+.row{display:flex;align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--ink);cursor:pointer}
+.row.item{cursor:default}
+.row:last-child{border-bottom:0}
+.day{width:56px;text-align:center;flex:none;line-height:1.05}
+.day small{display:block;font-size:18px}
+.day b{font-size:34px;font-weight:800}
+.tm{width:64px;flex:none;text-align:center;font-weight:800;font-size:19px;line-height:1.1}
+.info{flex:1;min-width:0}
+.info h2{margin:0 0 4px;font-weight:300;font-size:clamp(20px,6vw,28px);letter-spacing:.1em;text-transform:uppercase;overflow-wrap:anywhere}
+.info p{margin:0;font-size:12px;letter-spacing:.03em;text-transform:uppercase}
+.info em{display:block;margin-top:2px;font-size:12px}
+.chk{flex:none;width:48px;height:48px;border:0;border-radius:12px;background:var(--card);display:grid;place-items:center;transition:background .2s}
+.chk svg{width:24px;height:24px;stroke:var(--tick);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.45}
+.done .chk{background:var(--lime)}
+.done .chk svg{opacity:1;stroke:#5b6ea8}
+.done .info{opacity:.55}
+.empty{padding:40px 0;text-align:center;opacity:.8}
+.link{background:none;border:0;text-decoration:underline;font-size:13px;margin-top:14px;opacity:.75}
+.ov{position:fixed;inset:0;background:rgba(150,135,250,.82);display:grid;place-items:center;padding:24px;z-index:10}
+.sheet{background:var(--sheet);border-radius:28px;padding:32px 26px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
+.cel{text-align:center}
+.cel .big{font-size:64px;font-weight:800;color:var(--acc);line-height:1}
+.cel .sub{font-size:26px;font-weight:700;color:var(--acc);letter-spacing:.06em}
+.cel p{font-size:24px;font-weight:800;letter-spacing:.04em;margin:26px 0;text-transform:uppercase;line-height:1.2}
+label{display:block;font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:16px 0 6px}
+input{width:100%;border:0;border-radius:999px;background:var(--field);color:var(--ink);padding:13px 18px;font:inherit;font-size:16px}
+.pair{display:flex;gap:10px}
+.btn{display:block;width:100%;border:0;border-radius:999px;padding:15px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:14px;margin-top:12px}
+.btn.p{background:var(--acc);color:#fff;margin-top:26px}
+.btn.s{background:#fff;color:#111;box-shadow:0 1px 6px rgba(0,0,0,.15)}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const KEY="agenda-d4-v2";
+const I=(h,t,s)=>({h,t,s,done:false});
+const seed=()=>[
+{d:"Lun",n:"28",t:"Postulación",s:"CAS007-2026 Devida / Corte y baño de Puky",h:"8:30 AM / 3:00 PM",items:[I("7:30 AM","Aseo personal","Baño frío / cepillado de dientes"),I("9:30 AM","Paseo Puky",""),I("10:00 AM","Postulación","CAS007-2026 Devida"),I("2:30 PM","Paseo Yana",""),I("6:30 PM","Baño Puky",""),I("7:00 PM","Baño caliente","Cepillado de dientes"),I("10:00 PM","Oración","")]},
+{d:"Mar",n:"29",t:"Dimensional",s:"PDF de productora & servicios / M100 Behance 1",h:"8:30 AM - 12 PM / 1 PM - 6 PM",items:[I("8:30 AM","PDF de productora & servicios",""),I("1:00 PM","M100 Behance 1","")]},
+{d:"Mie",n:"30",t:"Inglés",s:"Clase promedio / M100 Behance 2 (finalizado)",h:"9:00 - 12:00 PM",items:[I("9:00 AM","Clase promedio",""),I("12:00 PM","M100 Behance 2","Finalizado")]},
+{d:"Jue",n:"01",t:"Social media",s:"Librero Sepia / BV Michael & Robbie",h:"8 AM - 12 PM / 1 PM - 6 PM",items:[I("8:00 AM","Librero Sepia",""),I("1:00 PM","BV Michael & Robbie","")]},
+{d:"Vie",n:"02",t:"Inglés",s:"Clase promedio / Planeación",h:"9:00 - 12:00 PM",items:[I("9:00 AM","Clase promedio",""),I("11:00 AM","Planeación","")]},
+{d:"Sab",n:"03",t:"Descanso",s:"Tiempo con Chimuelina",h:"Todo el día",items:[I("Todo el día","Tiempo con Chimuelina","")]},
+{d:"Dom",n:"04",t:"Elecciones",s:"Colegio Inmaculada - Misa NSC",h:"10:30 AM - 11 AM",items:[I("10:30 AM","Colegio Inmaculada","Misa NSC")]}];
+let days;try{const s=JSON.parse(localStorage.getItem(KEY));days=Array.isArray(s)&&s.length===7?s:seed()}catch(e){days=seed()}
+let view=null,editing=false;
+const app=document.getElementById("app");
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(days))}catch(e){}};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dayDone=d=>d.items.length>0&&d.items.every(i=>i.done);
+const weekDone=()=>days.every(dayDone);
+const TICK='<svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+const PEN='<svg viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/></svg>';
+const PLUS='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v10M7 12h10"/></svg>';
+const BACK='<svg viewBox="0 0 24 24"><path d="M9 6L4 11l5 5"/><path d="M4 11h10a6 6 0 010 12h-3" transform="translate(0 -4)"/></svg>';
+const bar=(n,t,txt)=>`<div class="prog">${n} de ${t} ${txt}</div><div class="bar"><i style="width:${t?n/t*100:0}%"></i></div>`;
+function render(){
+ if(view===null){
+  const n=days.filter(dayDone).length;
+  app.innerHTML=`<div class="top"><h1>Agenda Semanal</h1><button class="ib ${editing?"on":""}" id="ed" aria-label="Editar días">${PEN}</button></div>${bar(n,7,"completadas")}
+  <section>${days.map((d,i)=>`<div class="row ${dayDone(d)?"done":""}" data-i="${i}" tabindex="0" role="button"><div class="day"><small>${esc(d.d)}</small><b>${esc(d.n)}</b></div><div class="info"><h2>${esc(d.t)}</h2><p>${esc(d.s)}</p><em>${esc(d.h)}</em></div>${editing?`<button class="ib" data-e="${i}" aria-label="Editar ${esc(d.t)}">${PEN}</button>`:""}<div class="chk" aria-label="${dayDone(d)?"Día completo":"Día pendiente"}">${TICK}</div></div>`).join("")}</section>
+  <button class="link" id="rs">Reiniciar checks de la semana</button>`;
+  app.querySelector("#ed").onclick=()=>{editing=!editing;render()};
+  app.querySelector("#rs").onclick=()=>{if(confirm("¿Desmarcar todas las tareas de la semana?")){days.forEach(d=>d.items.forEach(x=>x.done=false));save();render()}};
+  app.querySelectorAll(".row").forEach(r=>{const go=()=>{view=+r.dataset.i;render()};r.onclick=e=>{if(e.target.closest("[data-e]"))return;go()};r.onkeydown=e=>{if(e.key==="Enter")go()}});
+  app.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>editDay(+b.dataset.e));
+ }else{
+  const d=days[view],n=d.items.filter(x=>x.done).length;
+  app.innerHTML=`<div class="top"><button class="ib" id="bk" aria-label="Volver">${BACK}</button><h1>${esc(d.d)} ${esc(d.n)}</h1><button class="ib" id="ad" aria-label="Agregar tarea">${PLUS}</button></div>${bar(n,d.items.length,"completadas")}
+  <section>${d.items.length?d.items.map((x,j)=>`<div class="row item ${x.done?"done":""}"><div class="tm">${esc(x.h)}</div><div class="info"><h2>${esc(x.t)}</h2>${x.s?`<p>${esc(x.s)}</p>`:""}</div><button class="ib" data-e="${j}" aria-label="Editar ${esc(x.t)}">${PEN}</button><button class="chk" data-c="${j}" aria-pressed="${x.done}" aria-label="Completar ${esc(x.t)}">${TICK}</button></div>`).join(""):`<div class="empty">No hay tareas este día. Toca + para agregar la primera.</div>`}</section>`;
+  app.querySelector("#bk").onclick=()=>{view=null;render()};
+  app.querySelector("#ad").onclick=()=>editItem(-1);
+  app.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>editItem(+b.dataset.e));
+  app.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>toggle(+b.dataset.c));
+ }
+}
+function toggle(j){
+ const d=days[view],was=dayDone(d);d.items[j].done=!d.items[j].done;save();render();
+ if(!was&&dayDone(d))celebrate(weekDone());
+}
+function modal(html){const o=document.createElement("div");o.className="ov";o.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;o.onclick=e=>{if(e.target===o)o.remove()};document.body.appendChild(o);return o}
+function celebrate(week){
+ const o=modal(week?`<div class="cel"><div class="big">100%</div><div class="sub">COMPLETADO</div><p>Felicitaciones!! Lo lograste, obtuviste todo lo propuesto</p><button class="btn s">Cerrar</button></div>`:`<div class="cel"><div class="big">Día</div><div class="sub">COMPLETADO</div><p>Felicitaciones!! Cumpliste todas las tareas del día</p><button class="btn s">Cerrar</button></div>`);
+ o.querySelector("button").onclick=()=>o.remove();
+}
+function form(title,fields,vals,onSave,onDel){
+ const o=modal(fields.map(([k,l,w])=>`<label for="f_${k}">${l}</label><input id="f_${k}" data-k="${k}" value="${esc(vals[k])}" autocomplete="off">`).join("").replace(/<label for="f_d">/,'<div class="pair"><div style="flex:1"><label for="f_d">').replace(/(<input id="f_d"[^>]*>)(<label for="f_n">)/,'$1</div><div style="flex:1">$2').replace(/(<input id="f_n"[^>]*>)/,'$1</div></div>')+`<button class="btn p">${title}</button>${onDel?'<button class="btn s" id="dl">Quitar tarea</button>':'<button class="btn s" id="cn">Cancelar</button>'}`);
+ o.querySelector(".p").onclick=()=>{const v={};o.querySelectorAll("input").forEach(i=>v[i.dataset.k]=i.value.trim());onSave(v);o.remove();save();render()};
+ if(onDel)o.querySelector("#dl").onclick=()=>{o.remove();onDel();save();render()};else o.querySelector("#cn").onclick=()=>o.remove();
+ o.querySelector("input").focus();
+}
+function editItem(j){
+ const d=days[view],x=j<0?{h:"",t:"",s:""}:d.items[j];
+ form(j<0?"Agregar tarea":"Actualizar tarea",[["h","Horario"],["t","Título"],["s","Subtítulo"]],x,v=>{if(!v.t&&!v.h)return;if(j<0)d.items.push({...v,done:false});else Object.assign(x,v)},j<0?null:()=>d.items.splice(j,1));
+}
+function editDay(i){
+ const d=days[i];
+ form("Actualizar día",[["d","Día"],["n","Número"],["t","Título"],["s","Subtítulo"],["h","Horario"]],d,v=>Object.assign(d,v));
+}
+render();
+</script>
+</body>
+</html>
