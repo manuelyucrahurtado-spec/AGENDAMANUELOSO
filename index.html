@@ -483,6 +483,23 @@ if(!localStorage.getItem(V14_FLAG)){
  st.rewards=JSON.parse(JSON.stringify(RW_DEFAULT));st.spent=0;st.log=[];
  try{localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(V14_FLAG,"1")}catch(e){}
 }
+// Plantilla completa V26: instala las rutinas y todos los bloques independientes
+// una sola vez en este navegador. Conserva una copia recuperable del estado anterior.
+const COMPLETE_TEMPLATE_FLAG="agenda-plantilla-completa-v26";
+if(!localStorage.getItem(COMPLETE_TEMPLATE_FLAG)){
+ try{localStorage.setItem("agenda-backup-before-complete-template-v26",JSON.stringify(st))}catch(e){}
+ st.days.forEach((d,i)=>{if(i<5)d.items=std(i)});
+ st.spent=0;
+ st.log=[];
+ st.disciplineWeek=disciplineWeekKeySafe();
+ try{localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(COMPLETE_TEMPLATE_FLAG,"1")}catch(e){}
+}
+function disciplineWeekKeySafe(){
+ const now=new Date(new Date().toLocaleString("en-US",{timeZone:"America/Lima"}));
+ const day=(now.getDay()+6)%7;
+ const monday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-day);
+ return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,"0")}-${String(monday.getDate()).padStart(2,"0")}`;
+}
 let view=null,taskView=null,enter=true,prevW={},prevN={},popId=null,newId=null;const app=document.getElementById("app");
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}window.cloudPush?.(JSON.stringify(st))};
 migrateProjectCards();
