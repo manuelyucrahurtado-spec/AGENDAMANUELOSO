@@ -492,6 +492,7 @@ if(!localStorage.getItem(COMPLETE_TEMPLATE_FLAG)){
  st.spent=0;
  st.log=[];
  st.disciplineWeek=disciplineWeekKeySafe();
+ st.templateVersion=26;
  try{localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(COMPLETE_TEMPLATE_FLAG,"1")}catch(e){}
 }
 function disciplineWeekKeySafe(){
@@ -516,7 +517,22 @@ function ensureMainGoal(){
 let syncMsg="";
 function setSync(t){syncMsg=t;const e=document.getElementById("sy");if(e)e.textContent=t}
 function getState(){return JSON.stringify(st)}
-function applyRemote(str){try{const o=JSON.parse(str);if(!o||!(o.days?.length>=7))return;o.days=o.days.slice(0,7);o.log=o.log||[];o.spent=o.spent||0;st=normalize(o);migrateProjectCards();disciplineSweep();try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}if(view!==null&&!st.days[view])view=null;render()}catch(e){}}
+function applyRemote(str){try{
+ const o=JSON.parse(str);if(!o||!(o.days?.length>=7))return;
+ o.days=o.days.slice(0,7);o.log=o.log||[];o.spent=o.spent||0;
+ // Firebase puede contener una plantilla anterior aunque el HTML ya sea nuevo.
+ // Migrar la nube una sola vez y persistir la versión en el documento compartido.
+ const needsTemplate=Number(o.templateVersion||0)<26;
+ if(needsTemplate){
+  try{localStorage.setItem('agenda-backup-firebase-before-v26',JSON.stringify(o))}catch(e){}
+  o.days.forEach((d,i)=>{if(i<5)d.items=std(i)});
+  o.spent=0;o.log=[];o.disciplineWeek=disciplineWeekKeySafe();o.templateVersion=26;
+ }
+ st=normalize(o);migrateProjectCards();disciplineSweep();
+ try{localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(COMPLETE_TEMPLATE_FLAG,'1')}catch(e){}
+ if(needsTemplate)window.cloudPush?.(JSON.stringify(st));
+ if(view!==null&&!st.days[view])view=null;enter=false;render();
+ }catch(e){console.error('Error al actualizar la plantilla sincronizada',e)}}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const calm=()=>matchMedia("(prefers-reduced-motion:reduce)").matches;
 const sorted=d=>d.items.map((x,i)=>[x,i]).sort((a,b)=>{const p=a[0].time||"99:99",q=b[0].time||"99:99";return p<q?-1:p>q?1:a[1]-b[1]}).map(p=>p[0]);
@@ -925,7 +941,7 @@ onAuthStateChanged(auth,u=>{
   if(err.code==="permission-denied")signOut(auth).then(()=>login("Tu correo no tiene permiso para esta agenda"));
   else setSync("Sin conexión");
  });
- window.cloudPush=push;render();
+ window.cloudPush=push;enter=false;render();
 });
 </script>
 </body>
