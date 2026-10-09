@@ -372,6 +372,10 @@ body[data-skin="leyenda"] .fab,body[data-skin="leyenda"] .cb{border-color:rgba(2
 .taskgrid .it .pt{display:none!important}
 @media(max-width:699px){.taskgrid .it{grid-template-columns:64px minmax(0,1fr) auto!important;grid-template-areas:"time text outcomes"!important}.taskgrid .it .outcomes{grid-area:outcomes!important;align-self:center!important;margin-top:0!important}}
 </style>
+<style id="agenda-v27-cloud-hydration">
+html.agenda-await-cloud #app{visibility:hidden}
+#app.sync-quiet>.hd,#app.sync-quiet>.phrase,#app.sync-quiet>.row,#app.sync-quiet>.dayview,#app.sync-quiet>.taskpage,#app.sync-quiet .taskgrid .it{animation:none!important;transition:none!important}
+</style>
 </head>
 <body>
 
@@ -517,6 +521,13 @@ function ensureMainGoal(){
 let syncMsg="";
 function setSync(t){syncMsg=t;const e=document.getElementById("sy");if(e)e.textContent=t}
 function getState(){return JSON.stringify(st)}
+// Preserve the current screen during cloud hydration; never replay entrance effects.
+function quietRender(){
+ const root=document.getElementById('app');
+ root.classList.add('sync-quiet');
+ try{render();root.querySelectorAll('.hd,.phrase,.row,.dayview,.taskpage,.taskgrid .it').forEach(el=>{el.style.animation='none';el.style.animationDelay='0s'})}
+ finally{root.classList.remove('sync-quiet')}
+}
 function applyRemote(str){try{
  const o=JSON.parse(str);if(!o||!(o.days?.length>=7))return;
  o.days=o.days.slice(0,7);o.log=o.log||[];o.spent=o.spent||0;
@@ -531,7 +542,7 @@ function applyRemote(str){try{
  st=normalize(o);migrateProjectCards();disciplineSweep();
  try{localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(COMPLETE_TEMPLATE_FLAG,'1')}catch(e){}
  if(needsTemplate)window.cloudPush?.(JSON.stringify(st));
- if(view!==null&&!st.days[view])view=null;enter=false;render();
+ if(view!==null&&!st.days[view])view=null;enter=false;quietRender();
  }catch(e){console.error('Error al actualizar la plantilla sincronizada',e)}}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const calm=()=>matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -905,6 +916,8 @@ persistentFabs.querySelector('#fbRw').onclick=rewardsListModal;
 const ambient=document.createElement("div");ambient.className="ambient";document.body.prepend(ambient);if(!matchMedia("(prefers-reduced-motion: reduce)").matches){let raf=0;addEventListener("pointermove",e=>{if(raf)return;raf=requestAnimationFrame(()=>{document.documentElement.style.setProperty("--mx",((e.clientX/innerWidth)-.5).toFixed(3));document.documentElement.style.setProperty("--my",((e.clientY/innerHeight)-.5).toFixed(3));raf=0})},{passive:true})}
 
 render();initClock();
+// Suppress initial card motion until Firebase has supplied the authoritative state.
+document.documentElement.classList.add("agenda-await-cloud");
 </script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -928,20 +941,25 @@ function login(msg=""){
 window.fbOut=()=>signOut(auth);
 onAuthStateChanged(auth,u=>{
  unsub?.();unsub=null;clearTimeout(timer);timer=null;window.cloudPush=null;
- if(!u){window.fbUser=null;login();render();return}
+ if(!u){window.fbUser=null;document.documentElement.classList.remove("agenda-await-cloud");login();quietRender();return}
  window.fbUser=u.email;if(ov){ov.remove();ov=null}
  setSync("Conectando...");
  unsub=onSnapshot(ref,snap=>{
   if(snap.metadata.hasPendingWrites||timer)return;
-  if(!snap.exists()){send(getState());return}
+  if(!snap.exists()){quietRender();window.agendaCloudHydrated=true;document.documentElement.classList.remove("agenda-await-cloud");send(getState());return}
   const s=snap.data().data;
   if(typeof s==="string"&&s!==getState())applyRemote(s);
+  else if(!window.agendaCloudHydrated)quietRender();
+  window.agendaCloudHydrated=true;
+  document.documentElement.classList.remove("agenda-await-cloud");
   setSync("Sincronizado");
  },err=>{
   if(err.code==="permission-denied")signOut(auth).then(()=>login("Tu correo no tiene permiso para esta agenda"));
-  else setSync("Sin conexión");
+  else {setSync("Sin conexión");quietRender();document.documentElement.classList.remove("agenda-await-cloud")}
  });
- window.cloudPush=push;enter=false;render();
+ window.cloudPush=push;enter=false;
+ // Wait for the first cloud snapshot instead of showing stale local cards first.
+ // Keep the current UI stable while authentication/synchronization finishes.
 });
 </script>
 </body>
