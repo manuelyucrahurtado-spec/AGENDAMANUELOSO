@@ -457,8 +457,9 @@ function projectCards(kind,previous){
  });
 }
 function migrateProjectCards(){
- // Migración de una sola vez: ya no vuelve a dividir tarjetas después de que renombres tramos.
- if(st.projectCardsSplit)return;
+ // Desactivada: la plantilla v26 ya instala los tramos independientes. Esta migración antigua
+ // volvía a dividir una tarjeta "Proyecto ..." solitaria y duplicaba tareas al renombrar un tramo.
+ st.projectCardsSplit=true;return;
  let changed=false;
  st.days.slice(0,5).forEach(d=>{
   for(const kind of ["principal","secundario"]){
