@@ -618,7 +618,7 @@ function nextPhrase(){
 let lastPhraseSlot=null;
 const limaNow=()=>new Date(new Date().toLocaleString("en-US",{timeZone:"America/Lima"}));
 const todayIdx=()=>{const d=limaNow().getDay();return d===0?6:d-1};
-lastPhraseSlot=phraseSlot();setInterval(()=>{const slot=phraseSlot();if(slot!==lastPhraseSlot){lastPhraseSlot=slot;if(view===null)render()}},30000);
+lastPhraseSlot=phraseSlot();setInterval(()=>{const slot=phraseSlot();if(slot!==lastPhraseSlot){lastPhraseSlot=slot;if(view===null)quietRender()}},30000);
 // Cada proyecto conserva una sola tarjeta y varios tramos reales de trabajo.
 const PROJECT_BLOCKS={
  principal:[["08:00","08:30"],["08:40","09:30"],["09:35","10:35"],["10:45","11:30"],["11:35","12:00"],["13:33","14:30"],["14:45","15:18"]],
@@ -811,8 +811,8 @@ function disciplineSweep(){
  disciplineBusy=false;
  return changed;
 }
-setInterval(()=>{if(disciplineSweep())render()},15000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&disciplineSweep())render()});
+setInterval(()=>{if(disciplineSweep())quietRender()},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&disciplineSweep())quietRender()});
 let statusRenderStable=false;
 function render(){
  ensureMainGoal();
@@ -875,7 +875,7 @@ function v22Feedback(rect,amount,completed){
  const el=document.createElement('div');el.className='v22-float'+(completed?'':' bad');el.textContent=(completed?'+':'−')+Math.abs(amount);el.style.left=cx+'px';el.style.top=cy+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),1450);
  for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2,r=35+Math.random()*40,q=document.createElement('i');q.className='v22-particle';q.style.cssText=`left:${cx}px;top:${cy}px;--dx:${Math.cos(a)*r}px;--dy:${Math.sin(a)*r}px;--rot:${Math.round(Math.random()*280)}deg;--particle:${completed?(i%2?'#ffe6a0':'#d5a03e'):'#f18c8c'}`;document.body.appendChild(q);setTimeout(()=>q.remove(),900)}
 }
-function setStatus(id,v){disciplineSweep();const off=view>=5,d=st.days[view],it=d.items.find(x=>x.id===id);if(!it||it.autoLocked)return;const feedbackRect=(document.querySelector(`[data-s="${id}"][data-v="${v}"]`)||document.querySelector("#taskYes")||document.querySelector("#taskNo"))?.getBoundingClientRect();const a=score(),old=it.status;it.status=old===v?null:v;it.done=it.status===1;if(it.status===1){const n=limaNow();it.completedAtMinute=n.getHours()*60+n.getMinutes()+n.getSeconds()/60}else{delete it.completedAtMinute}const pts=off?0:(alloc(d,false)[id]||0),signed=it.status===1?pts:it.status===-1?-pts:0;uiSound(it.status===1?"ok":it.status===-1?"bad":"start");popId=id;save();statusRenderStable=true;try{render()}finally{statusRenderStable=false}popId=null;if(it.status!==null){v22Feedback(feedbackRect,Math.abs(pts),it.status===1);const fresh=document.querySelector(`[data-open="${id}"]`);if(fresh&&it.status===1)fresh.classList.add("v22-just-done")}navigator.vibrate?.(12);const b=score(),nt=st.rewards.map((r,i)=>[r,i]).filter(([r])=>a<r.th&&b>=r.th).pop();if(nt)setTimeout(()=>rewardModal(nt[1]),650)}
+function setStatus(id,v){disciplineSweep();const off=view>=5,d=st.days[view],it=d.items.find(x=>x.id===id);if(!it||it.autoLocked)return;const feedbackRect=(document.querySelector(`[data-s="${id}"][data-v="${v}"]`)||document.querySelector("#taskYes")||document.querySelector("#taskNo"))?.getBoundingClientRect();const a=score(),old=it.status;it.status=old===v?null:v;it.done=it.status===1;if(it.status===1){const n=limaNow();it.completedAtMinute=n.getHours()*60+n.getMinutes()+n.getSeconds()/60}else{delete it.completedAtMinute}const pts=off?0:(alloc(d,false)[id]||0),signed=it.status===1?pts:it.status===-1?-pts:0;uiSound(it.status===1?"ok":it.status===-1?"bad":"start");popId=id;save();statusRenderStable=true;try{quietRender()}finally{statusRenderStable=false}popId=null;if(it.status!==null){v22Feedback(feedbackRect,Math.abs(pts),it.status===1);const fresh=document.querySelector(`[data-open="${id}"]`);if(fresh&&it.status===1)fresh.classList.add("v22-just-done")}navigator.vibrate?.(12);const b=score(),nt=st.rewards.map((r,i)=>[r,i]).filter(([r])=>a<r.th&&b>=r.th).pop();if(nt)setTimeout(()=>rewardModal(nt[1]),650)}
 const shut=o=>{o.classList.add("out");setTimeout(()=>o.remove(),220)};
 function modal(h){const o=document.createElement("div");o.className="ov";o.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><button class="xclose" id="xc" aria-label="Cerrar">✕</button>${h}</div>`;o.onclick=e=>{if(e.target===o)shut(o)};document.body.appendChild(o);const close=o.querySelector("#xc");close.type="button";close.style.width="44px";close.style.height="44px";close.style.top="10px";close.style.right="10px";close.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();shut(o)});return o}
 function rewardModal(i,won=null,prev=0){
