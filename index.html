@@ -457,6 +457,8 @@ function projectCards(kind,previous){
  });
 }
 function migrateProjectCards(){
+ // Migración de una sola vez: ya no vuelve a dividir tarjetas después de que renombres tramos.
+ if(st.projectCardsSplit)return;
  let changed=false;
  st.days.slice(0,5).forEach(d=>{
   for(const kind of ["principal","secundario"]){
@@ -464,11 +466,14 @@ function migrateProjectCards(){
    const matching=d.items.filter(x=>String(x.t||"").toLowerCase()===title);
    if(matching.length!==1)continue;
    const old=matching[0];
+   // Un tramo ya dividido (subtítulo "Tramo X de Y") no es una tarjeta antigua: se respeta.
+   if(/^tramo\s+\d+\s+de\s+\d+/i.test(String(old.s||"")))continue;
    const idx=d.items.indexOf(old);
    d.items.splice(idx,1,...projectCards(kind,old));
    changed=true;
   }
  });
+ st.projectCardsSplit=true;
  if(changed)save();
 }
 function std(di=0){
