@@ -5,6 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Agenda de Puntos</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AF%3C/text%3E%3C/svg%3E">
+<script>
+(function(){
+ var r=document.documentElement;
+ /* Oculta la interfaz desde el primer instante hasta tener datos de la nube y la tipografia */
+ r.classList.add('agenda-await-cloud');
+ /* Aplica el ultimo tema usado antes del primer pintado, sin pasar por el azul por defecto */
+ try{
+  var c=JSON.parse(localStorage.getItem('agenda-skin-cache-v1'));
+  if(c&&c.vars){for(var k in c.vars)r.style.setProperty(k,c.vars[k]);window.__skinBoot=c.name}
+ }catch(e){}
+ window.revealApp=function(){
+  var go=function(){r.classList.remove('agenda-await-cloud')};
+  if(document.fonts&&document.fonts.status==='loading'){
+   Promise.race([document.fonts.ready,new Promise(function(x){setTimeout(x,1500)})]).then(go);
+  }else go();
+ };
+ /* Seguro: si la nube nunca responde, se muestra lo local pasados 6 s */
+ setTimeout(function(){if(r.classList.contains('agenda-await-cloud'))window.revealApp()},6000);
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap">
 <style>
 :root{color-scheme:dark;--lime:#c3ff80;--navy:#243a72;--coral:#ff6b6b;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.1);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -374,10 +400,15 @@ body[data-skin="leyenda"] .fab,body[data-skin="leyenda"] .cb{border-color:rgba(2
 </style>
 <style id="agenda-v27-cloud-hydration">
 html.agenda-await-cloud #app{visibility:hidden}
+html.agenda-await-cloud body{transition:none!important}
+html.agenda-await-cloud #app,html.agenda-await-cloud .clk,html.agenda-await-cloud .fabs{opacity:0;pointer-events:none}
+html:not(.agenda-await-cloud) #app,html:not(.agenda-await-cloud) .clk,html:not(.agenda-await-cloud) .fabs{animation:agendaReveal .3s ease}
+@keyframes agendaReveal{from{opacity:0}}
 #app.sync-quiet>.hd,#app.sync-quiet>.phrase,#app.sync-quiet>.row,#app.sync-quiet>.dayview,#app.sync-quiet>.taskpage,#app.sync-quiet .taskgrid .it{animation:none!important;transition:none!important}
 </style>
 </head>
 <body>
+<script>try{if(window.__skinBoot)document.body.dataset.skin=window.__skinBoot}catch(e){}</script>
 
 <main id="app"></main>
 
@@ -686,11 +717,13 @@ function naturalVars(){
 }
 function applySkin(name=activeSkin){
  activeSkin=SKINS[name]?name:"sepia";localStorage.setItem(SKIN_KEY,activeSkin);
- const v=SKINS[activeSkin].vars,root=document.documentElement;
- Object.entries(v).forEach(([k,val])=>root.style.setProperty('--'+k,val));
- root.style.setProperty('--navIcon',v.navIcon||v.text||'#dfe6f7');
- root.style.setProperty('--clockText',v.clockText||v.accent||v.text);
- root.style.setProperty('--lime',v.accent);root.style.setProperty('--card',v.surface);document.body.dataset.skin=activeSkin;
+ const v=SKINS[activeSkin].vars,root=document.documentElement,css={};
+ const put=(k,val)=>{root.style.setProperty(k,val);css[k]=val};
+ Object.entries(v).forEach(([k,val])=>put('--'+k,val));
+ put('--navIcon',v.navIcon||v.text||'#dfe6f7');
+ put('--clockText',v.clockText||v.accent||v.text);
+ put('--lime',v.accent);put('--card',v.surface);document.body.dataset.skin=activeSkin;
+ try{localStorage.setItem('agenda-skin-cache-v1',JSON.stringify({name:activeSkin,vars:css}))}catch(e){}
 }
 function skinsModal(){
  const cards=Object.entries(SKINS).map(([k,v])=>`<button class="skin-card ${k===activeSkin?'on':''}" data-skin="${k}"><div class="skin-swatch" style="background:${v.sw}"></div><b>${v.name}</b><small>${v.desc}</small></button>`).join('');
@@ -941,21 +974,21 @@ function login(msg=""){
 window.fbOut=()=>signOut(auth);
 onAuthStateChanged(auth,u=>{
  unsub?.();unsub=null;clearTimeout(timer);timer=null;window.cloudPush=null;
- if(!u){window.fbUser=null;document.documentElement.classList.remove("agenda-await-cloud");login();quietRender();return}
+ if(!u){window.fbUser=null;window.revealApp();login();quietRender();return}
  window.fbUser=u.email;if(ov){ov.remove();ov=null}
  setSync("Conectando...");
  unsub=onSnapshot(ref,snap=>{
   if(snap.metadata.hasPendingWrites||timer)return;
-  if(!snap.exists()){quietRender();window.agendaCloudHydrated=true;document.documentElement.classList.remove("agenda-await-cloud");send(getState());return}
+  if(!snap.exists()){quietRender();window.agendaCloudHydrated=true;window.revealApp();send(getState());return}
   const s=snap.data().data;
   if(typeof s==="string"&&s!==getState())applyRemote(s);
   else if(!window.agendaCloudHydrated)quietRender();
   window.agendaCloudHydrated=true;
-  document.documentElement.classList.remove("agenda-await-cloud");
+  window.revealApp();
   setSync("Sincronizado");
  },err=>{
   if(err.code==="permission-denied")signOut(auth).then(()=>login("Tu correo no tiene permiso para esta agenda"));
-  else {setSync("Sin conexión");quietRender();document.documentElement.classList.remove("agenda-await-cloud")}
+  else {setSync("Sin conexión");quietRender();window.revealApp()}
  });
  window.cloudPush=push;enter=false;
  // Wait for the first cloud snapshot instead of showing stale local cards first.
