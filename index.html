@@ -406,6 +406,45 @@ html:not(.agenda-await-cloud) #app,html:not(.agenda-await-cloud) .clk,html:not(.
 @keyframes agendaReveal{from{opacity:0}}
 #app.sync-quiet>.hd,#app.sync-quiet>.phrase,#app.sync-quiet>.row,#app.sync-quiet>.dayview,#app.sync-quiet>.taskpage,#app.sync-quiet .taskgrid .it{animation:none!important;transition:none!important}
 </style>
+<style id="agenda-v28-free-time">
+.taskgrid .free{display:grid;grid-template-columns:76px 1fr auto;gap:8px;align-items:center;width:100%;padding:10px 14px;border-radius:20px;border:1.5px dashed var(--line);background:transparent;color:var(--text,inherit);font:inherit;text-align:left;cursor:pointer;opacity:.85;transition:opacity .2s,background .2s}
+.taskgrid .free:hover,.taskgrid .free:focus-visible{opacity:1;background:rgba(255,255,255,.05)}
+.free .fr{font-weight:700;font-size:15px;opacity:.7}
+.free .fl{font-size:12px;letter-spacing:.14em;font-weight:700}
+.free .fl small{display:block;letter-spacing:.02em;font-weight:400;opacity:.72;font-size:11px;margin-top:2px}
+.free .fm{font-weight:800;font-size:13px;color:var(--lime,inherit)}
+</style>
+<style id="agenda-v29-switch-subs">
+.swrow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px auto 0;padding:12px 16px;border-radius:18px;border:1px solid var(--line);background:var(--card)}
+.swrow span{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:2px;text-align:left}
+.swrow small{font-weight:400;opacity:.65;font-size:11.5px}
+.sw{position:relative;flex:none;width:52px;height:30px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.14);cursor:pointer;transition:background .25s;padding:0}
+.sw i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .25s}
+.sw.on{background:#8bc34a;border-color:#8bc34a}
+.sw.on i{transform:translateX(22px)}
+.subs{margin:18px 0 6px;padding:14px;border-radius:20px;border:1px solid var(--line);background:var(--card)}
+.subs-head{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.14em;margin-bottom:6px;opacity:.85}
+.sub{display:flex;align-items:center;gap:12px;width:100%;padding:11px 4px;background:none;border:0;border-top:1px solid var(--line);color:inherit;font:inherit;text-align:left;cursor:pointer}
+.subs-head+.sub{border-top:0}
+.sub .box{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-size:15px;font-weight:800;color:#10230b}
+.sub.on .box{background:#8bc34a;border-color:#8bc34a}
+.sub.on .st{text-decoration:line-through;opacity:.6}
+.sub:disabled{opacity:.6;cursor:default}
+.subprog{display:block;margin-top:3px;font-size:11px;opacity:.7;letter-spacing:.04em;font-weight:400}
+.subs-edit{display:flex;flex-direction:column;gap:8px;margin:6px 0 10px}
+.subrow{display:flex;gap:8px}
+.subrow input{flex:1;min-width:0;background:white;color:#243a72;border-radius:12px;padding:12px;font-size:16px;border:0}
+.subrow button{flex:none;width:42px;border-radius:12px;border:1px solid var(--line);background:transparent;color:inherit;cursor:pointer}
+</style>
+<style id="agenda-v30-categories">
+.it.neutral{opacity:.86}
+.it.neutral.past:not(.completed){opacity:.5}
+</style>
+<style id="agenda-v32-mobile-inputs">
+/* La regla base "font:italic 16px inherit" es inválida y dejaba los campos en ~13px, lo que dispara el zoom automático en iPhone. */
+input,textarea,select{font-size:16px}
+.edit-step input,.inwrap input{font-size:16px}
+</style>
 </head>
 <body>
 <script>try{if(window.__skinBoot)document.body.dataset.skin=window.__skinBoot}catch(e){}</script>
@@ -509,10 +548,12 @@ function std(di=0){
  return A;
 }
 const stdWeekend=()=>[S("","Tiempo libre","Sin puntaje, día de descanso"),S("","Pendiente","Agregar aquí lo que corresponda")];
+// Rutina = no suma ni resta puntos. Principal = suma y resta.
+function isNeutral(x){return !x||x.importance!=="main"}
 function normalize(s){
  s.rewards=Array.isArray(s.rewards)&&s.rewards.length?s.rewards:JSON.parse(JSON.stringify(RW_DEFAULT));
  s.streak=s.streak&&typeof s.streak==="object"?s.streak:{count:0,last:null};s.history=Array.isArray(s.history)?s.history:[];
- (s.days||[]).forEach((d,di)=>{if(di<5)d.items=(d.items||[]).filter(x=>x.type!=="-");(d.items||[]).forEach(x=>{if(!x.importance)x.importance="routine";if(x.status===undefined)x.status=x.done?1:null;x.done=x.status===1;if(di>=5)x.status=x.done?1:null;delete x.type})});return s;
+ (s.days||[]).forEach((d,di)=>{if(di<5)d.items=(d.items||[]).filter(x=>x.type!=="-");(d.items||[]).forEach(x=>{if(!x.importance)x.importance="routine";if(x.status===undefined)x.status=x.done?1:null;x.done=x.status===1;if(di>=5)x.status=x.done?1:null;delete x.cat;delete x.neutral;delete x.type})});return s;
 }
 
 let st;try{st=JSON.parse(localStorage.getItem(KEY));if(!st||!(st.days?.length>=7))throw 0;st.days=st.days.slice(0,7);st.log=st.log||[];if("banked" in st||!st.spent){st.spent=0;delete st.banked}st=normalize(st)}catch(e){st=normalize({days:DAYS.map((n,i)=>({n,items:i<5?std(i):stdWeekend()})),spent:0,log:[]})}
@@ -565,6 +606,17 @@ function quietRender(){
  try{render();root.querySelectorAll('.hd,.phrase,.row,.dayview,.taskpage,.taskgrid .it').forEach(el=>{el.style.animation='none';el.style.animationDelay='0s'})}
  finally{root.classList.remove('sync-quiet')}
 }
+// V31: borrón único de todas las tareas (a pedido del usuario). Queda marcado en el estado y se sincroniza.
+const CLEAN_SLATE=31;
+function applyCleanSlate(o){
+ if(Number(o.cleanSlate||0)>=CLEAN_SLATE)return false;
+ o.days.forEach(d=>{d.items=[]});o.spent=0;delete o.noSweepWeek;o.cleanSlate=CLEAN_SLATE;return true;
+}
+if(Number(st.cleanSlate||0)<CLEAN_SLATE){
+ try{localStorage.setItem("agenda-backup-before-reset",JSON.stringify({at:Date.now(),state:st}))}catch(e){}
+ applyCleanSlate(st);
+ try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}
+}
 function applyRemote(str){try{
  const o=JSON.parse(str);if(!o||!(o.days?.length>=7))return;
  o.days=o.days.slice(0,7);o.log=o.log||[];o.spent=o.spent||0;
@@ -576,9 +628,10 @@ function applyRemote(str){try{
   o.days.forEach((d,i)=>{if(i<5)d.items=std(i)});
   o.spent=0;o.log=[];o.disciplineWeek=disciplineWeekKeySafe();o.templateVersion=26;
  }
+ const wiped=applyCleanSlate(o);
  st=normalize(o);migrateProjectCards();disciplineSweep();
  try{localStorage.setItem(KEY,JSON.stringify(st));localStorage.setItem(COMPLETE_TEMPLATE_FLAG,'1')}catch(e){}
- if(needsTemplate)window.cloudPush?.(JSON.stringify(st));
+ if(needsTemplate||wiped)window.cloudPush?.(JSON.stringify(st));
  if(view!==null&&!st.days[view])view=null;enter=false;quietRender();
  }catch(e){console.error('Error al actualizar la plantilla sincronizada',e)}}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -598,7 +651,7 @@ function defaultTaskPoints(x){
  if(t.includes('desayuno')||t.includes('almuerzo')||t.includes('cena'))return {gain:2,loss:1};
  return x.importance==='main'?{gain:10,loss:8}:{gain:2,loss:2};
 }
-function taskPoints(x){return {gain:Math.max(0,Number.isFinite(+x.pointsGain)&&x.pointsGain!==undefined?+x.pointsGain:(x.importance==="main"?10:2)),loss:Math.max(0,Number.isFinite(+x.pointsLoss)&&x.pointsLoss!==undefined?+x.pointsLoss:(x.importance==="main"?8:2))}}
+function taskPoints(x){if(isNeutral(x))return{gain:0,loss:0};return {gain:Math.max(0,Number.isFinite(+x.pointsGain)&&x.pointsGain!==undefined?+x.pointsGain:(x.importance==="main"?10:2)),loss:Math.max(0,Number.isFinite(+x.pointsLoss)&&x.pointsLoss!==undefined?+x.pointsLoss:(x.importance==="main"?8:2))}}
 function alloc(d,off){if(off)return{};return Object.fromEntries(d.items.map(x=>[x.id,taskPoints(x).gain]))}
 function dayMax(d){return d.items.reduce((sum,x)=>sum+taskPoints(x).gain,0)}
 function stats(d,off){const m=alloc(d,off);let g=0,l=0;d.items.forEach(x=>{const p=taskPoints(x);if(!off&&x.status===1)g+=p.gain;else if(!off&&x.status===-1)l+=p.loss});return{g,l,t:g-l,m}}
@@ -804,12 +857,13 @@ function disciplineSweep(){
  let changed=false;
  const week=disciplineWeekKey();
  if(st.disciplineWeek!==week){
-  if(st.disciplineWeek){st.days.forEach(d=>d.items.forEach(x=>{x.status=null;x.done=false;x.autoLocked=false}));st.spent=0;}
+  if(st.disciplineWeek){st.days.forEach(d=>d.items.forEach(x=>{x.status=null;x.done=false;x.autoLocked=false;delete x.autoFailed;subsOf(x).forEach(v=>v.done=false)}));st.spent=0;}
   st.disciplineWeek=week;changed=true;
  }
- st.days.forEach((d,di)=>{if(di>=5)return;d.items.forEach(x=>{
-  if(disciplineExpired(di,x)){
-   if(x.status===null||x.status===undefined){x.status=-1;x.done=false;changed=true;}
+ st.days.forEach(d=>d.items.forEach(x=>{if(isNeutral(x)&&(x.autoLocked||x.autoFailed||x.status===-1)){x.autoLocked=false;if(x.status===-1){x.status=null;x.done=false}delete x.autoFailed;changed=true}}));
+ st.days.forEach((d,di)=>{if(di>=5||st.noSweepWeek===week||st.autoLockOff)return;d.items.forEach(x=>{
+  if(!isNeutral(x)&&disciplineExpired(di,x)){
+   if(x.status===null||x.status===undefined){x.status=-1;x.done=false;x.autoFailed=true;changed=true;}
    if(!x.autoLocked){x.autoLocked=true;changed=true;}
   }
  })});
@@ -827,17 +881,20 @@ function render(){
  if(view!==null&&taskView){renderTaskPage();enter=false;return}
  if(view===null){const sc=score();
   const peruDate=new Date(new Date().toLocaleString("en-US",{timeZone:"America/Lima"}));const today=(peruDate.getDay()+6)%7;const todayDay=st.days[today];const goal=todayDay?.items.find(x=>x.featured);
-  app.innerHTML=`<div class="hd"><div class="hd-goal">${goal?`<strong class="hd-goal-title"><span class="goal-trophy" aria-hidden="true">🏆</span>${esc(agendaTitle(goal.t))}</strong>`:`<span class="goal-placeholder">OBJETIVO DEL DÍA</span>`}</div><div class="hd-score"><span>PUNTAJE ACTUAL</span><b data-n="${sc}" data-k="score">${sc}</b></div></div><div class="phrase"><div class="eyebrow">FRASE DEL DÍA</div><div class="quote">${esc(phraseToday().q)}</div><div class="author">— ${esc(phraseToday().a)}</div><div class="phrase-tools"><button class="phrase-next" id="nextPhrase" aria-label="Cambiar frase"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>OTRA FRASE</button></div></div>`+st.days.map((d,i)=>{const off=i>=5,s=stats(d,off),gold=!off&&d.items.length>0&&d.items.every(x=>x.status===1);return`<button class="row${inn}${gold?" gold":""}${i===today?" today-card":""}" style="--i:${i}" data-d="${i}"><div class="l"><div class="nm">${esc(d.n)}${i===today?`<span class="today-label">HOY <span class="today-dot"></span></span>`:""}</div><div class="day-feature">${d.items.some(x=>x.featured)?`<span class="feature-star">★</span>${esc(agendaTitle(d.items.find(x=>x.featured).t))}`:""}</div><div class="cnt">${d.items.length} tareas</div><div class="bar"><i data-k="d${i}" data-w="${off?0:pc(s.g,d)}"></i></div></div><div class="tot ${gold?"gold":s.t>0?"pos":s.t<0?"neg":""}"><div>${off?`<b>--</b>`:`<b data-n="${s.t}" data-k="t${i}" data-p="1">${pad(s.t)}</b>`}TOTAL</div></div></button>`}).join("")+`<button class="link" id="nw">Resetear</button>${window.fbUser?`<div class="sy" id="sy">${esc(syncMsg)}</div><button class="link" id="lo">Cerrar sesión (${esc(window.fbUser)})</button>`:""}`;
+  app.innerHTML=`<div class="hd"><div class="hd-goal">${goal?`<strong class="hd-goal-title"><span class="goal-trophy" aria-hidden="true">🏆</span>${esc(agendaTitle(goal.t))}</strong>`:`<span class="goal-placeholder">OBJETIVO DEL DÍA</span>`}</div><div class="hd-score"><span>PUNTAJE ACTUAL</span><b data-n="${sc}" data-k="score">${sc}</b></div></div><div class="phrase"><div class="eyebrow">FRASE DEL DÍA</div><div class="quote">${esc(phraseToday().q)}</div><div class="author">— ${esc(phraseToday().a)}</div><div class="phrase-tools"><button class="phrase-next" id="nextPhrase" aria-label="Cambiar frase"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>OTRA FRASE</button></div></div>`+st.days.map((d,i)=>{const off=i>=5,s=stats(d,off),gold=!off&&d.items.some(x=>!isNeutral(x))&&d.items.filter(x=>!isNeutral(x)).every(x=>x.status===1);return`<button class="row${inn}${gold?" gold":""}${i===today?" today-card":""}" style="--i:${i}" data-d="${i}"><div class="l"><div class="nm">${esc(d.n)}${i===today?`<span class="today-label">HOY <span class="today-dot"></span></span>`:""}</div><div class="day-feature">${d.items.some(x=>x.featured)?`<span class="feature-star">★</span>${esc(agendaTitle(d.items.find(x=>x.featured).t))}`:""}</div><div class="cnt">${d.items.length} tareas</div><div class="bar"><i data-k="d${i}" data-w="${off?0:pc(s.g,d)}"></i></div></div><div class="tot ${gold?"gold":s.t>0?"pos":s.t<0?"neg":""}"><div>${off?`<b>--</b>`:`<b data-n="${s.t}" data-k="t${i}" data-p="1">${pad(s.t)}</b>`}TOTAL</div></div></button>`}).join("")+`<div class="swrow"><span>Bloqueo automático por tiempo<small>${st.autoLockOff?"Desactivado: puedes completar tareas fuera de hora":"Activado: las tareas vencidas se cierran solas"}</small></span><button class="sw${st.autoLockOff?"":" on"}" id="autoLockSw" role="switch" aria-checked="${st.autoLockOff?"false":"true"}" aria-label="Bloqueo automático por tiempo"><i></i></button></div><button class="link" id="nw">Resetear</button>${hasResetBackup()?`<button class="link" id="undoReset">Deshacer el último reseteo</button>`:""}${window.fbUser?`<div class="sy" id="sy">${esc(syncMsg)}</div><button class="link" id="lo">Cerrar sesión (${esc(window.fbUser)})</button>`:""}`;
   app.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{view=+b.dataset.d;taskView=null;enter=true;render();scrollTo(0,0)});
   const lo=app.querySelector("#lo");if(lo)lo.onclick=()=>window.fbOut?.();
   app.querySelector("#nextPhrase").onclick=nextPhrase;
 
-  const nw=app.querySelector("#nw");nw.onclick=()=>{if(nw.dataset.a){st.spent=0;st.days.forEach(d=>d.items.forEach(x=>{x.status=null;x.done=false;x.autoLocked=false}));save();render();return}nw.dataset.a=1;nw.textContent="¿Seguro? Toca otra vez para dejar todo en cero";setTimeout(()=>{if(nw.isConnected){delete nw.dataset.a;nw.textContent="Resetear"}},3500)};
- }else{const off=view>=5,d=st.days[view],s=stats(d,off);
-  app.innerHTML=`<div class="dayview"><div class="top${inn}"><button class="cb" id="bk" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><h1>${esc(d.n.toUpperCase())}</h1><button class="cb" id="ad" aria-label="Agregar tarea"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="bar"><i data-k="day${view}" data-w="${off?0:pc(s.g,d)}"></i></div><div class="two"><div class="pill g">Ganados<b${off?"":` data-n="${s.g}" data-k="g" data-p="1"`}>${off?"--":pad(s.g)}</b></div><div class="pill">Perdidos<b${off?"":` data-n="${s.l}" data-k="l" data-p="1"`}>${off?"--":pad(s.l)}</b></div></div><div class="taskgrid${statusRenderStable?" status-stable":""}" id="taskCards">`+sorted(d).map((x,k)=>{const p=s.m[x.id]||0,stt=x.status,locked=!!x.autoLocked;return`<div class="it ${off?"neu":""} ${stt===1?"completed":""}${stt===-1?" failed":""}${enter||newId===x.id?" in":""}" data-open="${x.id}" style="--i:${Math.min(k,12)}"><div class="tm" data-tmr="${x.id}" data-ft="${ft(x.time)}">${x.time?esc(ft(x.time).replace(/\s*(am|pm)$/i,"")):"—"}</div><div class="tt"><h2><span class="task-emoji" aria-hidden="true">${taskEmoji(x.t)}</span>${esc(agendaTitle(x.t))}</h2></div><div class="outcomes">${locked?`<span class="discipline-lock">🔒 ${stt===1?"CERRADA":"VENCIDA"}</span>`:off?`<button class="outcome yes ${stt===1?"on":""}" data-s="${x.id}" data-v="1" aria-label="Realizada">✓</button>`:`<button class="outcome yes ${stt===1?"on":""}" data-s="${x.id}" data-v="1" aria-label="Cumplida">✓</button><button class="outcome no ${stt===-1?"on":""}" data-s="${x.id}" data-v="-1" aria-label="No cumplida">✕</button>`}</div></div>`}).join("")+`</div></div>`;
+  const nw=app.querySelector("#nw");nw.onclick=confirmReset;
+  app.querySelector("#autoLockSw").onclick=()=>{if(st.autoLockOff)confirmAutoLockOn();else setAutoLock(true)};
+  const ur=app.querySelector("#undoReset");if(ur)ur.onclick=()=>{if(ur.dataset.a){undoReset();return}ur.dataset.a=1;ur.textContent="¿Seguro? Se recupera lo que había antes";setTimeout(()=>{if(ur.isConnected){delete ur.dataset.a;ur.textContent="Deshacer el último reseteo"}},4500)};
+ }else{const off=view>=5,d=st.days[view],s=stats(d,off),FS=freeSlots(d);
+  app.innerHTML=`<div class="dayview"><div class="top${inn}"><button class="cb" id="bk" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><h1>${esc(d.n.toUpperCase())}</h1><button class="cb" id="ad" aria-label="Agregar tarea"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><div class="bar"><i data-k="day${view}" data-w="${off?0:pc(s.g,d)}"></i></div><div class="two"><div class="pill g">Ganados<b${off?"":` data-n="${s.g}" data-k="g" data-p="1"`}>${off?"--":pad(s.g)}</b></div><div class="pill">Perdidos<b${off?"":` data-n="${s.l}" data-k="l" data-p="1"`}>${off?"--":pad(s.l)}</b></div></div><div class="taskgrid${statusRenderStable?" status-stable":""}" id="taskCards">`+sorted(d).map((x,k)=>{const p=s.m[x.id]||0,stt=x.status,locked=!!x.autoLocked;return freeCard(FS.before[x.id])+`<div class="it ${off?"neu":""}${isNeutral(x)?" neutral":""}${isNeutral(x)&&stt!==1&&disciplineExpired(view,x)?" past":""} ${stt===1?"completed":""}${stt===-1?" failed":""}${enter||newId===x.id?" in":""}" data-open="${x.id}" style="--i:${Math.min(k,12)}"><div class="tm" data-tmr="${x.id}" data-ft="${ft(x.time)}">${x.time?esc(ft(x.time).replace(/\s*(am|pm)$/i,"")):"—"}</div><div class="tt"><h2><span class="task-emoji" aria-hidden="true">${taskEmoji(x.t)}</span>${esc(agendaTitle(x.t))}</h2>${subProg(x)}</div><div class="outcomes">${locked?`<span class="discipline-lock">🔒 ${stt===1?"CERRADA":"VENCIDA"}</span>`:(off||isNeutral(x))?`<button class="outcome yes ${stt===1?"on":""}" data-s="${x.id}" data-v="1" aria-label="Realizada">✓</button>`:`<button class="outcome yes ${stt===1?"on":""}" data-s="${x.id}" data-v="1" aria-label="Cumplida">✓</button><button class="outcome no ${stt===-1?"on":""}" data-s="${x.id}" data-v="-1" aria-label="No cumplida">✕</button>`}</div></div>`}).join("")+freeCard(FS.tail)+`</div></div>`;
   app.querySelector("#bk").onclick=()=>{view=null;enter=true;render()};
   app.querySelector("#ad").onclick=()=>edit(null);
   app.querySelectorAll("[data-open]").forEach(card=>card.onclick=()=>{taskView=card.dataset.open;enter=true;render();scrollTo(0,0)});
+  app.querySelectorAll("[data-free]").forEach(b=>b.onclick=()=>{const [a,e]=b.dataset.free.split("-").map(Number);edit(null,{time:toT(a),duration:Math.min(30,e-a)})});
   app.querySelectorAll("[data-s]").forEach(b=>b.onclick=e=>{e.stopPropagation();setStatus(b.dataset.s,+b.dataset.v)});
 
   renderTimers();
@@ -864,9 +921,10 @@ function renderTaskPage(){
  const isProject=x.t.toLocaleLowerCase('es-PE').includes('proyecto');
  const dur=windowInfo?{minutes:projectKind(x)?projectMinutes(x):windowInfo.minutes,next}:null;
  const hint=projectKind(x)?`Trabajo repartido en ${projectWindows(x).length} tramos · ${projectMinutes(x)} min efectivos`:!x.time?"Esta tarea no tiene un horario establecido.":dur?`${next&&!isProject?"Hasta "+ft(next.time):"Duración establecida"} · ${dur.minutes} min`:`No hay otra tarea con horario después de esta.`;
- app.innerHTML=`<div class="taskpage${enter?" in":""}"><div class="taskpage-head"><button class="cb" id="tclose" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><div class="taskpage-title"><h1><span class="task-emoji" aria-hidden="true">${taskEmoji(x.t)}</span>${esc(x.t)}</h1><p>${esc(x.s)}</p><small class="detail-score">+${taskPoints(x).gain} / −${taskPoints(x).loss} pts</small></div><button class="cb" id="ted" aria-label="Editar tarea">${PN}</button></div><div class="timerhero"><div class="when">${esc(ft(x.time))}</div><div class="clock" data-big-tmr="${x.id}">${dur?String(dur.minutes).padStart(2,"0")+":00":"--:--"}</div><p style="text-align:center;opacity:.72;margin:0 0 18px">${esc(hint)}</p><div class="automatic-state" data-auto-state>Horario programado</div>${projectKind(x)?`<div class="project-blocks"><strong>TRAMOS DE TRABAJO</strong>${projectWindows(x).map(w=>`<span>${ft(String(Math.floor(w.start/60)).padStart(2,"0")+":"+String(w.start%60).padStart(2,"0"))} – ${ft(String(Math.floor(w.end/60)).padStart(2,"0")+":"+String(w.end%60).padStart(2,"0"))}</span>`).join("")}</div>`:""}</div><div class="task-actions-clean">${locked?`<div class="discipline-lock detail">🔒 ${x.status===1?"ACTIVIDAD CERRADA":"TIEMPO AGOTADO · NO REALIZADA"}</div>`:""}<div class="taskactions task-result"><button class="b task-yes ${x.status===1?"selected-yes":""}" id="taskYes" ${locked?"disabled":""}><span aria-hidden="true">✓</span> ${x.status===1?"COMPLETADA":"COMPLETAR"}</button>${view<5?`<button class="b task-no ${x.status===-1?"selected-no":""}" id="taskNo" ${locked?"disabled":""}><span aria-hidden="true">✕</span> NO COMPLETADA</button>`:""}</div><button id="taskFeatured" class="task-feature-btn ${x.featured?"active":""}" aria-pressed="${!!x.featured}" ${hasOtherGoal?'title="Reemplaza el objetivo principal actual del día"':""}>${x.featured?"★ OBJETIVO PRINCIPAL SELECCIONADO":"☆ ESTABLECER OBJETIVO PRINCIPAL"}</button></div></div>`;
+ app.innerHTML=`<div class="taskpage${enter?" in":""}"><div class="taskpage-head"><button class="cb" id="tclose" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><div class="taskpage-title"><h1><span class="task-emoji" aria-hidden="true">${taskEmoji(x.t)}</span>${esc(x.t)}</h1>${x.s?`<p>${esc(x.s)}</p>`:""}<small class="detail-score">${isNeutral(x)?"Rutina · sin puntos":`+${taskPoints(x).gain} / −${taskPoints(x).loss} pts`}</small></div><button class="cb" id="ted" aria-label="Editar tarea">${PN}</button></div><div class="timerhero"><div class="when">${esc(ft(x.time))}</div><div class="clock" data-big-tmr="${x.id}">${dur?String(dur.minutes).padStart(2,"0")+":00":"--:--"}</div><p style="text-align:center;opacity:.72;margin:0 0 18px">${esc(hint)}</p><div class="automatic-state" data-auto-state>Horario programado</div>${projectKind(x)?`<div class="project-blocks"><strong>TRAMOS DE TRABAJO</strong>${projectWindows(x).map(w=>`<span>${ft(String(Math.floor(w.start/60)).padStart(2,"0")+":"+String(w.start%60).padStart(2,"0"))} – ${ft(String(Math.floor(w.end/60)).padStart(2,"0")+":"+String(w.end%60).padStart(2,"0"))}</span>`).join("")}</div>`:""}</div>${subsHtml(x,locked)}<div class="task-actions-clean">${locked?`<div class="discipline-lock detail">🔒 ${x.status===1?"ACTIVIDAD CERRADA":"TIEMPO AGOTADO · NO REALIZADA"}</div>`:""}<div class="taskactions task-result"><button class="b task-yes ${x.status===1?"selected-yes":""}" id="taskYes" ${locked||(x.status!==1&&subsLeft(x)>0)?"disabled":""}><span aria-hidden="true">✓</span> ${x.status===1?"COMPLETADA":subsLeft(x)>0?"FALTAN "+subsLeft(x)+" MINITAREAS":"COMPLETAR"}</button>${view<5&&!isNeutral(x)?`<button class="b task-no ${x.status===-1?"selected-no":""}" id="taskNo" ${locked?"disabled":""}><span aria-hidden="true">✕</span> NO COMPLETADA</button>`:""}</div><button id="taskFeatured" class="task-feature-btn ${x.featured?"active":""}" aria-pressed="${!!x.featured}" ${hasOtherGoal?'title="Reemplaza el objetivo principal actual del día"':""}>${x.featured?"★ OBJETIVO PRINCIPAL SELECCIONADO":"☆ ESTABLECER OBJETIVO PRINCIPAL"}</button></div></div>`;
  app.querySelector("#tclose").onclick=()=>{taskView=null;enter=true;render()};
  app.querySelector("#ted").onclick=()=>edit(x.id);
+ app.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>toggleSub(x.id,b.dataset.sub));
  app.querySelector("#taskFeatured").onclick=()=>{const was=!!x.featured;d.items.forEach(t=>t.featured=false);x.featured=!was;save();render()};
  app.querySelector("#taskYes").onclick=()=>setStatus(x.id,1);
  const taskNo=app.querySelector("#taskNo");if(taskNo)taskNo.onclick=()=>setStatus(x.id,-1);
@@ -881,7 +939,7 @@ function v22Feedback(rect,amount,completed){
  const el=document.createElement('div');el.className='v22-float'+(completed?'':' bad');el.textContent=(completed?'+':'−')+Math.abs(amount);el.style.left=cx+'px';el.style.top=cy+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),1450);
  for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2,r=35+Math.random()*40,q=document.createElement('i');q.className='v22-particle';q.style.cssText=`left:${cx}px;top:${cy}px;--dx:${Math.cos(a)*r}px;--dy:${Math.sin(a)*r}px;--rot:${Math.round(Math.random()*280)}deg;--particle:${completed?(i%2?'#ffe6a0':'#d5a03e'):'#f18c8c'}`;document.body.appendChild(q);setTimeout(()=>q.remove(),900)}
 }
-function setStatus(id,v){disciplineSweep();const off=view>=5,d=st.days[view],it=d.items.find(x=>x.id===id);if(!it||it.autoLocked)return;const feedbackRect=(document.querySelector(`[data-s="${id}"][data-v="${v}"]`)||document.querySelector("#taskYes")||document.querySelector("#taskNo"))?.getBoundingClientRect();const a=score(),old=it.status;it.status=old===v?null:v;it.done=it.status===1;if(it.status===1){const n=limaNow();it.completedAtMinute=n.getHours()*60+n.getMinutes()+n.getSeconds()/60}else{delete it.completedAtMinute}const pts=off?0:(alloc(d,false)[id]||0),signed=it.status===1?pts:it.status===-1?-pts:0;uiSound(it.status===1?"ok":it.status===-1?"bad":"start");popId=id;save();statusRenderStable=true;try{quietRender()}finally{statusRenderStable=false}popId=null;if(it.status!==null){v22Feedback(feedbackRect,Math.abs(pts),it.status===1);const fresh=document.querySelector(`[data-open="${id}"]`);if(fresh&&it.status===1)fresh.classList.add("v22-just-done")}navigator.vibrate?.(12);const b=score(),nt=st.rewards.map((r,i)=>[r,i]).filter(([r])=>a<r.th&&b>=r.th).pop();if(nt)setTimeout(()=>rewardModal(nt[1]),650)}
+function setStatus(id,v){disciplineSweep();const off=view>=5,d=st.days[view],it=d.items.find(x=>x.id===id);if(!it||it.autoLocked)return;if(isNeutral(it)&&v===-1)return;if(v===1&&it.status!==1&&subsLeft(it)>0){toast("Completa las minitareas de esta tarea primero");return}const feedbackRect=(document.querySelector(`[data-s="${id}"][data-v="${v}"]`)||document.querySelector("#taskYes")||document.querySelector("#taskNo"))?.getBoundingClientRect();const a=score(),old=it.status;delete it.autoFailed;it.status=old===v?null:v;it.done=it.status===1;if(it.status===1){const n=limaNow();it.completedAtMinute=n.getHours()*60+n.getMinutes()+n.getSeconds()/60}else{delete it.completedAtMinute}const pts=off?0:(alloc(d,false)[id]||0),signed=it.status===1?pts:it.status===-1?-pts:0;uiSound(it.status===1?"ok":it.status===-1?"bad":"start");popId=id;save();statusRenderStable=true;try{quietRender()}finally{statusRenderStable=false}popId=null;if(it.status!==null){if(!isNeutral(it))v22Feedback(feedbackRect,Math.abs(pts),it.status===1);const fresh=document.querySelector(`[data-open="${id}"]`);if(fresh&&it.status===1)fresh.classList.add("v22-just-done")}navigator.vibrate?.(12);const b=score(),nt=st.rewards.map((r,i)=>[r,i]).filter(([r])=>a<r.th&&b>=r.th).pop();if(nt)setTimeout(()=>rewardModal(nt[1]),650)}
 const shut=o=>{o.classList.add("out");setTimeout(()=>o.remove(),220)};
 function modal(h){const o=document.createElement("div");o.className="ov";o.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><button class="xclose" id="xc" aria-label="Cerrar">✕</button>${h}</div>`;o.onclick=e=>{if(e.target===o)shut(o)};document.body.appendChild(o);const close=o.querySelector("#xc");close.type="button";close.style.width="44px";close.style.height="44px";close.style.top="10px";close.style.right="10px";close.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();shut(o)});return o}
 function rewardModal(i,won=null,prev=0){
@@ -915,15 +973,87 @@ function editReward(i){
  };
 }
 const mark=c=>{const i=Math.max(0,Math.min(c.children.length-1,Math.round(c.scrollTop/44)));[...c.children].forEach((e,j)=>e.classList.toggle("s",j===i));return i};
-function edit(id){
+// V28: tiempo libre, reseteo que vacía la semana y edición sin bloqueos injustos.
+const DAY_START_MIN=6*60,DAY_END_MIN=23*60;
+const toT=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const fmtMin=m=>m>=60?`${Math.floor(m/60)} h${m%60?` ${m%60} min`:""}`:`${m} min`;
+function freeSlots(d){
+ const items=sorted(d).filter(x=>x.time);
+ const before={};let tail=null;
+ let cursor=items.length?minuteOf(items[0].time):DAY_START_MIN;
+ items.forEach(x=>{
+  const s=minuteOf(x.time);
+  if(s-cursor>=5&&!before[x.id])before[x.id]={start:cursor,end:s};
+  const w=scheduledWindow(d,x);
+  cursor=Math.max(cursor,w?w.end:s);
+ });
+ if(DAY_END_MIN-cursor>=5)tail={start:cursor,end:DAY_END_MIN};
+ // El último hueco va justo después de la última tarea con hora, antes de las tareas sin horario.
+ const untimed=sorted(d).find(x=>!x.time);
+ if(tail&&untimed){before[untimed.id]=tail;tail=null}
+ return {before,tail};
+}
+const freeCard=f=>f?`<button class="free" data-free="${f.start}-${f.end}" aria-label="Tiempo libre de ${toT(f.start)} a ${toT(f.end)}"><span class="fr">${esc(ft(toT(f.start)).replace(/\s*(am|pm)$/i,""))}</span><span class="fl">LIBRE<small>${esc(ft(toT(f.start)))} a ${esc(ft(toT(f.end)))}</small></span><span class="fm">${fmtMin(f.end-f.start)}</span></button>`:"";
+const RESET_BACKUP_KEY="agenda-backup-before-reset";
+function hasResetBackup(){try{const b=JSON.parse(localStorage.getItem(RESET_BACKUP_KEY));return !!(b&&b.state&&Date.now()-b.at<14*864e5)}catch(e){return false}}
+function resetWeek(){
+ try{localStorage.setItem(RESET_BACKUP_KEY,JSON.stringify({at:Date.now(),state:st}))}catch(e){}
+ st.spent=0;
+ st.days.forEach((d,i)=>{if(i<5){
+  // Se borran las tareas Principal (las que suman y restan); las de Rutina se conservan.
+  const keep=d.items.filter(x=>isNeutral(x));
+  keep.forEach(x=>{x.status=null;x.done=false;x.autoLocked=false;delete x.autoFailed;delete x.featured;delete x.completedAtMinute;subsOf(x).forEach(v=>v.done=false)});
+  d.items=keep;
+ }else d.items.forEach(x=>{x.status=null;x.done=false;x.autoLocked=false;delete x.autoFailed;subsOf(x).forEach(v=>v.done=false)})});
+ st.disciplineWeek=disciplineWeekKeySafe();st.templateVersion=26;
+ // Si se resetea en fin de semana, la planificación de la semana siguiente no se marca como vencida.
+ if(todayIdx()>=5)st.noSweepWeek=disciplineWeekKeySafe();else delete st.noSweepWeek;
+ try{localStorage.setItem(COMPLETE_TEMPLATE_FLAG,"1");localStorage.setItem(V14_FLAG,"1")}catch(e){}
+ save();view=null;taskView=null;enter=true;render();toast("Semana vaciada");
+}
+// V29: interruptor de bloqueo automático y minitareas dentro de cada tarea.
+const subsOf=x=>Array.isArray(x&&x.subs)?x.subs:[];
+const subsLeft=x=>subsOf(x).filter(v=>!v.done).length;
+const subProg=x=>{const L=subsOf(x);return L.length?`<span class="subprog">☑ ${L.filter(v=>v.done).length}/${L.length} minitareas</span>`:""};
+const subsHtml=(x,locked)=>{const L=subsOf(x);if(!L.length)return"";return`<div class="subs"><div class="subs-head"><strong>MINITAREAS</strong><span>${L.filter(v=>v.done).length}/${L.length}</span></div>${L.map(v=>`<button class="sub${v.done?" on":""}" data-sub="${esc(v.id)}" ${locked?"disabled":""}><span class="box">${v.done?"✓":""}</span><span class="st">${esc(v.t)}</span></button>`).join("")}</div>`};
+function toggleSub(id,sid){
+ disciplineSweep();
+ const x=st.days[view]?.items.find(v=>v.id===id);if(!x||x.autoLocked)return;
+ const sb=subsOf(x).find(v=>v.id===sid);if(!sb)return;
+ sb.done=!sb.done;
+ const left=subsLeft(x);
+ // Al tachar la última minitarea se completa la tarjeta; si se destacha una, vuelve a pendiente.
+ if((left===0&&x.status!==1)||(left>0&&x.status===1)){setStatus(id,1);return}
+ save();statusRenderStable=true;try{quietRender()}finally{statusRenderStable=false}
+}
+function setAutoLock(off){
+ st.autoLockOff=!!off;
+ if(off){st.days.forEach(d=>d.items.forEach(x=>{if(x.autoFailed&&x.status===-1){x.status=null;x.done=false}delete x.autoFailed;x.autoLocked=false}))}
+ else disciplineSweep();
+ save();quietRender();toast(off?"Bloqueo automático desactivado":"Bloqueo automático activado");
+}
+function confirmAutoLockOn(){
+ const o=modal(`<h2>¿Activar el bloqueo automático?</h2><p style="text-align:center;opacity:.82;line-height:1.5;margin:6px 0 18px">Las tareas pendientes cuyo horario ya pasó se marcarán como no cumplidas y quedarán cerradas.</p><button class="b p" id="alYes">Sí, activar</button><button class="b w" id="alNo">Cancelar</button>`);
+ o.querySelector("#alNo").onclick=()=>shut(o);
+ o.querySelector("#alYes").onclick=()=>{shut(o);setAutoLock(false)};
+}
+function confirmReset(){
+ const o=modal(`<h2>¿Resetear la semana?</h2><p style="text-align:center;opacity:.82;line-height:1.5;margin:6px 0 18px">Se borrarán las tareas Principal de lunes a viernes y los puntos volverán a cero. Las tareas de Rutina se conservan. Podrás deshacerlo desde el inicio.</p><button class="b p" id="rsYes">Sí, resetear</button><button class="b w" id="rsNo">Cancelar</button>`);
+ o.querySelector("#rsNo").onclick=()=>shut(o);
+ o.querySelector("#rsYes").onclick=()=>{shut(o);resetWeek()};
+}
+function undoReset(){
+ try{const b=JSON.parse(localStorage.getItem(RESET_BACKUP_KEY));if(!b||!b.state)return;st=normalize(b.state);st.cleanSlate=CLEAN_SLATE;localStorage.removeItem(RESET_BACKUP_KEY);save();view=null;taskView=null;enter=true;render();toast("Reseteo deshecho")}catch(e){}
+}
+function edit(id,pre){
  // La edición permanece disponible para planificar incluso tareas vencidas.
- const d=st.days[view],x=id?d.items.find(v=>v.id===id):{importance:"routine",time:"",t:"",s:""};
+ const d=st.days[view],x=id?d.items.find(v=>v.id===id):{importance:"routine",time:pre?.time||"",t:"",s:"",duration:pre?.duration};
  let ty=x.importance==="main"?"main":"routine",any=!x.time,step=0;const tm=x.time||"08:00",h0=+tm.slice(0,2),m0=+tm.slice(3,5);
  const colLoop=a=>`<div class="wc">${a.concat(a,a).map(v=>`<div>${v}</div>`).join("")}</div>`;
  const H=Array.from({length:12},(_,i)=>String(i+1).padStart(2,"0")),M=Array.from({length:60},(_,i)=>String(i).padStart(2,"0"));
- const occupied=d.items.filter(v=>v.time&&v.id!==id).reduce((m,v)=>{m[v.time]=v.t;return m},{});
+ const others=d.items.filter(v=>v.time&&v.id!==id);
  const inp=(iid,val)=>`<div class="inwrap"><input id="${iid}" value="${esc(val)}" autocomplete="off"><button class="clr" data-clr="${iid}" aria-label="Borrar" tabindex="-1">✕</button></div>`;
- const o=modal(`<div class="edit-slider"><div class="edit-track" id="etrack"><section class="edit-step"><label for="tt">Título</label>${inp("tt",x.t)}<label for="ss">Subtítulo</label>${inp("ss",x.s)}</section><section class="edit-step"><label>${view>=5?"Día neutral":"Importancia"}</label>${view>=5?`<p style="text-align:center;opacity:.62;margin:8px 0 16px">Sábado y domingo no modifican el puntaje.</p><div class="seg seg2" id="sg" style="display:none"><button data-v="routine">Rutina</button><button data-v="main">Principal</button></div>`:`<div class="seg seg2" id="sg"><button data-v="routine">Rutina</button><button data-v="main">Principal</button></div>`}<label>Duración (minutos)</label><input class="duration-edit" id="durationMins" type="number" min="5" max="720" step="5" value="${Number(x.duration)||30}"><label>Horario</label><button class="any" id="an"></button><div class="wheels" id="wh">${colLoop(H)+colLoop(M)+`<div class="wc">${["AM","PM"].map(v=>`<div>${v}</div>`).join("")}</div>`}</div><p id="clash" style="color:#a33;font-size:12px;text-align:center;min-height:16px;margin:6px 0 0"></p></section></div></div><div class="edit-nav"><div class="edit-arrows"><button class="edit-arrow" id="prevStep" aria-label="Anterior">‹</button><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);font-weight:700" id="stepLabel">Datos principales</span><button class="edit-arrow" id="nextStep" aria-label="Siguiente">›</button></div><div class="edit-dots"><button class="edit-dot on" data-step="0" aria-label="Datos principales"></button><button class="edit-dot" data-step="1" aria-label="Importancia y horario"></button></div></div><div class="edit-footer"><button class="b p" id="ok">${id?"Actualizar tarea":"Agregar tarea"}</button><button class="b w" id="cn">Cancelar</button>${id?'<button class="edit-delete" id="dl">Quitar tarea</button>':''}</div>`);
+ const o=modal(`<div class="edit-slider"><div class="edit-track" id="etrack"><section class="edit-step"><label for="tt">Título</label>${inp("tt",x.t)}<label>Minitareas</label><div class="subs-edit" id="subsEdit"></div><button class="b w" id="addSub" type="button">+ Agregar minitarea</button></section><section class="edit-step"><label>${view>=5?"Día neutral":"Importancia"}</label>${view>=5?`<p style="text-align:center;opacity:.62;margin:8px 0 16px">Sábado y domingo no modifican el puntaje.</p><div class="seg seg2" id="sg" style="display:none"><button data-v="routine">Rutina</button><button data-v="main">Principal</button></div>`:`<div class="seg seg2" id="sg"><button data-v="routine">Rutina</button><button data-v="main">Principal</button></div><p id="tyHint" style="text-align:center;opacity:.72;font-size:12px;margin:8px 0 0;min-height:16px"></p>`}<label>Duración (minutos)</label><input class="duration-edit" id="durationMins" type="number" min="5" max="720" step="5" value="${Number(x.duration)||30}"><label>Horario</label><button class="any" id="an"></button><div class="wheels" id="wh">${colLoop(H)+colLoop(M)+`<div class="wc">${["AM","PM"].map(v=>`<div>${v}</div>`).join("")}</div>`}</div><p id="clash" style="color:#a33;font-size:12px;text-align:center;min-height:16px;margin:6px 0 0"></p><p id="freeinfo" style="font-size:12px;text-align:center;opacity:.72;min-height:16px;margin:2px 0 0"></p></section></div></div><div class="edit-nav"><div class="edit-arrows"><button class="edit-arrow" id="prevStep" aria-label="Anterior">‹</button><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);font-weight:700" id="stepLabel">Datos principales</span><button class="edit-arrow" id="nextStep" aria-label="Siguiente">›</button></div><div class="edit-dots"><button class="edit-dot on" data-step="0" aria-label="Datos principales"></button><button class="edit-dot" data-step="1" aria-label="Importancia y horario"></button></div></div><div class="edit-footer"><button class="b p" id="ok">${id?"Actualizar tarea":"Agregar tarea"}</button><button class="b w" id="cn">Cancelar</button>${id?'<button class="edit-delete" id="dl">Quitar tarea</button>':''}</div>`);
  const sheet=o.querySelector('.sheet');sheet.classList.add('taskedit-sheet');o.querySelector('#xc')?.remove();
  const track=o.querySelector('#etrack'),slider=o.querySelector('.edit-slider'),steps=[...o.querySelectorAll('.edit-step')],dots=[...o.querySelectorAll('[data-step]')],prevStep=o.querySelector('#prevStep'),nextStep=o.querySelector('#nextStep'),stepLabel=o.querySelector('#stepLabel');
  const fitStep=()=>{slider.style.height=steps[step].scrollHeight+'px'};
@@ -931,17 +1061,39 @@ function edit(id){
  dots.forEach(b=>b.onclick=()=>goStep(+b.dataset.step));if(prevStep)prevStep.onclick=()=>goStep(step-1);if(nextStep)nextStep.onclick=()=>goStep(step+1);window.addEventListener('resize',fitStep,{once:true});
  let sx=0;track.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});track.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45)goStep(dx<0?1:0)},{passive:true});
  const sg=o.querySelector("#sg"),an=o.querySelector("#an"),wh=o.querySelector("#wh"),cs=[...o.querySelectorAll(".wc")],clash=o.querySelector("#clash"),okBtn=o.querySelector("#ok");
- const setTy=v=>{ty=v;sg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v===v))};
+ const setTy=v=>{ty=v;sg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));const th=o.querySelector("#tyHint");if(th)th.textContent=v==="main"?"Principal: suma puntos al cumplir y resta si no":"Rutina: no suma ni resta puntos"};
  const val=()=>{if(any)return"";const a=Math.round(cs[0].scrollTop/44)%12,b=Math.round(cs[1].scrollTop/44)%60,c=Math.round(cs[2].scrollTop/44);return String((a+1)%12+(c?12:0)).padStart(2,"0")+":"+String(b).padStart(2,"0")};
- const checkClash=()=>{if(any){clash.textContent="";okBtn.disabled=false;return}const t=val(),o2=occupied[t];clash.textContent=o2?"Ese horario ya lo usa: "+o2:"";okBtn.disabled=!!o2};
+ let subsDraft=subsOf(x).map(v=>({id:v.id,t:v.t,done:!!v.done}));
+ const subsBox=o.querySelector("#subsEdit");
+ const drawSubs=()=>{subsBox.innerHTML=subsDraft.map((v,i)=>`<div class="subrow"><input data-si="${i}" value="${esc(v.t)}" placeholder="Minitarea" autocomplete="off"><button type="button" data-sd="${i}" aria-label="Quitar minitarea">✕</button></div>`).join("");
+  subsBox.querySelectorAll("[data-si]").forEach(i=>i.oninput=()=>{subsDraft[+i.dataset.si].t=i.value});
+  subsBox.querySelectorAll("[data-sd]").forEach(b=>b.onclick=()=>{subsDraft.splice(+b.dataset.sd,1);drawSubs()});
+  requestAnimationFrame(fitStep)};
+ o.querySelector("#addSub").onclick=()=>{subsDraft.push({id:uid(),t:"",done:false});drawSubs();const ins=subsBox.querySelectorAll("[data-si]");if(ins.length)ins[ins.length-1].focus()};
+ drawSubs();
+ let timeTouched=false,durTouched=false;const durEl=o.querySelector("#durationMins"),freeInfo=o.querySelector("#freeinfo");
+ // Solo se usa la hora de las ruedas si la tocaste; al renombrar se conserva la hora original.
+ const curTime=()=>any?"":((id&&x.time&&!timeTouched)?x.time:val());
+ const spanOf=v=>{const s=minuteOf(v.time),n=Number(v.duration);return {s,e:n>0?s+n:s,r:n>0}};
+ const checkClash=()=>{
+  clash.textContent="";freeInfo.textContent="";okBtn.disabled=false;
+  const t=curTime();if(!t)return;
+  const s=minuteOf(t);let next=DAY_END_MIN,inside=false;
+  others.forEach(v=>{const q=spanOf(v);if(q.s<=s&&(q.r?s<q.e:s===q.s))inside=true;else if(q.s>s&&q.s<next)next=q.s});
+  if(!inside&&next>s)freeInfo.textContent=`Libre desde las ${ft(t)} hasta las ${ft(toT(next))} · ${fmtMin(next-s)}`;
+  if(id&&!timeTouched&&!durTouched)return;
+  const dur=Math.max(0,Number(durEl.value)||0),e=Math.max(s+dur,s+1);
+  const hit=others.find(v=>{const q=spanOf(v);return q.r?(q.s<e&&s<q.e):(s<=q.s&&q.s<e)});
+  if(hit){const q=spanOf(hit);clash.textContent=`Se cruza con "${hit.t}" (${ft(hit.time)}${q.r?" a "+ft(toT(q.e)):""})`;okBtn.disabled=true}
+ };
  const setAny=v=>{any=v;an.classList.toggle("on",v);an.textContent=v?"Cualquier momento: activado":"Usar cualquier momento";wh.classList.toggle("off",v);checkClash()};
  sg.querySelectorAll("button").forEach(b=>b.onclick=()=>setTy(b.dataset.v));setTy(ty);
- an.onclick=()=>setAny(!any);setAny(any);
+ an.onclick=()=>{timeTouched=true;setAny(!any)};setAny(any);
  o.querySelectorAll("[data-clr]").forEach(b=>{b.type="button";b.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();const i=o.querySelector("#"+b.dataset.clr);i.value="";i.dispatchEvent(new Event("input",{bubbles:true}));i.focus()});b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();const i=o.querySelector("#"+b.dataset.clr);if(i.value){i.value="";i.focus()}})});
- [[(h0%12||12)-1,12],[m0,60],[h0>=12?1:0,2]].forEach(([v,len],k)=>{const c=cs[k],loop=k<2;const base=loop?len:0;c.scrollTop=(base+v)*44;mark(c);c.onscroll=()=>{mark(c);checkClash();if(!loop)return;const i=Math.round(c.scrollTop/44);if(i<len*.5)c.scrollTop+=len*44;else if(i>=len*2.5)c.scrollTop-=len*44};[...c.children].forEach((e,j)=>e.onclick=()=>{setAny(false);c.scrollTo({top:j*44,behavior:"smooth"})})});
- ["pointerdown","wheel","touchstart"].forEach(ev=>wh.addEventListener(ev,()=>{if(any)setAny(false)},{passive:true}));
- checkClash();goStep(0);
- o.querySelector("#ok").onclick=()=>{const title=o.querySelector("#tt").value.trim();if(!title){goStep(0);return o.querySelector("#tt").focus()}const v={importance:ty,time:val(),t:agendaTitle(title),s:agendaSubtitle(o.querySelector("#ss").value),duration:Math.max(0,Math.min(720,Number(o.querySelector("#durationMins").value)||0))};if(id)Object.assign(x,v);else{newId=uid();const automaticPoints=defaultTaskPoints(v);d.items.push({id:newId,status:null,done:false,...v,pointsGain:automaticPoints.gain,pointsLoss:automaticPoints.loss})}save();shut(o);render()};
+ [[(h0%12||12)-1,12],[m0,60],[h0>=12?1:0,2]].forEach(([v,len],k)=>{const c=cs[k],loop=k<2;const base=loop?len:0;c.scrollTop=(base+v)*44;mark(c);c.onscroll=()=>{mark(c);checkClash();if(!loop)return;const i=Math.round(c.scrollTop/44);if(i<len*.5)c.scrollTop+=len*44;else if(i>=len*2.5)c.scrollTop-=len*44};[...c.children].forEach((e,j)=>e.onclick=()=>{timeTouched=true;setAny(false);c.scrollTo({top:j*44,behavior:"smooth"})})});
+ ["pointerdown","wheel","touchstart"].forEach(ev=>wh.addEventListener(ev,()=>{timeTouched=true;if(any)setAny(false);else checkClash()},{passive:true}));
+ durEl.addEventListener("input",()=>{durTouched=true;checkClash()});checkClash();goStep(0);
+ o.querySelector("#ok").onclick=()=>{const title=o.querySelector("#tt").value.trim();if(!title){goStep(0);return o.querySelector("#tt").focus()}const v={importance:ty,time:curTime(),t:agendaTitle(title),s:id?x.s:"",subs:subsDraft.map(v=>({id:v.id,t:v.t.trim(),done:!!v.done})).filter(v=>v.t)};if(!id||durTouched)v.duration=Math.max(0,Math.min(720,Number(durEl.value)||0));if(id){Object.assign(x,v);if(!v.subs.length)delete x.subs;if(x.status===1&&!x.autoLocked&&subsLeft(x)>0){x.status=null;x.done=false;delete x.completedAtMinute}}else{newId=uid();const automaticPoints=defaultTaskPoints(v);d.items.push({id:newId,status:null,done:false,...v,pointsGain:automaticPoints.gain,pointsLoss:automaticPoints.loss})}save();shut(o);render()};
  o.querySelector("#cn").onclick=()=>shut(o);
  if(id)o.querySelector("#dl").onclick=()=>{d.items=d.items.filter(v=>v.id!==id);if(taskView===id)taskView=null;save();shut(o);render()};
 }
